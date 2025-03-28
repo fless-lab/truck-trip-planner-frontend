@@ -7,6 +7,7 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/componen
 import { MapPinIcon, TruckIcon, CalendarIcon, ArrowRightIcon, Loader2 } from "lucide-react"
 import { formatDate } from "@/lib/utils"
 import { toast } from "sonner"
+import { fetchApi } from "@/lib/api"
 
 interface Trip {
   id: number
@@ -29,13 +30,7 @@ export default function TripsList() {
         setLoading(true)
         toast.loading("Loading trips...", { id: "fetch-trips" })
 
-        const response = await fetch("http://localhost:8000/api/trips/")
-
-        if (!response.ok) {
-          throw new Error("Error retrieving trips")
-        }
-
-        const data = await response.json()
+        const data = await fetchApi("/api/trips/")
         setTrips(data)
 
         toast.success("Trips loaded successfully", {

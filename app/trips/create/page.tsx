@@ -13,6 +13,7 @@ import { CitySelect } from "@/components/city-select"
 
 // Replace the existing toast implementation with Sonner
 import { toast } from "sonner"
+import { postApi } from "@/lib/api"
 
 export default function CreateTripPage() {
   const router = useRouter()
@@ -52,13 +53,7 @@ export default function CreateTripPage() {
         id: "create-trip",
       })
 
-      const response = await fetch("http://localhost:8000/api/trips/create/", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(payload),
-      })
+      const response = await postApi("/api/trips/create/", payload)
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}))

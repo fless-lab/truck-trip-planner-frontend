@@ -9,6 +9,7 @@ import { Loader2, ArrowLeft, MapPin, Clock, TruckIcon, MapIcon } from "lucide-re
 import DriverActivityChart from "@/components/driver-activity-chart"
 import ActivityMap from "@/components/activity-map"
 import { toast } from "sonner"
+import { fetchApi } from "@/lib/api"
 
 interface Activity {
   date: string
@@ -75,13 +76,7 @@ export default function TripActivitiesPage() {
         setLoading(true)
         toast.loading("Loading trip activities...", { id: "fetch-trip" })
 
-        const response = await fetch(`http://localhost:8000/api/trips/${tripId}/`)
-
-        if (!response.ok) {
-          throw new Error("Error retrieving trip")
-        }
-
-        const data = await response.json()
+        const data = await fetchApi(`/api/trips/${tripId}/`)
         console.log("Trip data:", data)
         setTrip(data)
 
