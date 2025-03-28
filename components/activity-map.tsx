@@ -130,7 +130,7 @@ export default function ActivityMap({ activities, tripData }: ActivityMapProps) 
       const markers: any[] = []
 
       // Fonction pour obtenir l'icône en fonction du statut
-      const getStatusIcon = (status: string) => {
+      const getStatusIcon = (status: string, isStart: boolean, isPickup: boolean, isDropoff: boolean) => {
         const iconOptions = {
           size: [25, 41],
           anchor: [12, 41],
@@ -138,21 +138,29 @@ export default function ActivityMap({ activities, tripData }: ActivityMapProps) 
         }
 
         let iconUrl = ""
-        switch (status) {
-          case "DRIVING":
-            iconUrl = "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png"
-            break
-          case "ON_DUTY_NOT_DRIVING":
-            iconUrl = "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-orange.png"
-            break
-          case "OFF_DUTY":
-            iconUrl = "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png"
-            break
-          case "SLEEPER_BERTH":
-            iconUrl = "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-violet.png"
-            break
-          default:
-            iconUrl = "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png"
+        if (isStart) {
+          iconUrl = "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png" // Rouge pour le départ
+        } else if (isPickup) {
+          iconUrl = "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png" // Bleu pour le ramassage
+        } else if (isDropoff) {
+          iconUrl = "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-black.png" // Noir pour la livraison
+        } else {
+          switch (status) {
+            case "DRIVING":
+              iconUrl = "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png" // Gris par défaut pour la conduite
+              break
+            case "ON_DUTY_NOT_DRIVING":
+              iconUrl = "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-orange.png" // Orange pour les arrêts (ex. ravitaillement)
+              break
+            case "OFF_DUTY":
+              iconUrl = "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png" // Vert pour les pauses/repos
+              break
+            case "SLEEPER_BERTH":
+              iconUrl = "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-violet.png" // Violet pour les repos longs
+              break
+            default:
+              iconUrl = "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png"
+          }
         }
 
         return L.icon({
@@ -167,30 +175,31 @@ export default function ActivityMap({ activities, tripData }: ActivityMapProps) 
 
       console.log("Activities count:", sortedActivities.length)
 
-      // Ajouter des marqueurs pour les activités avec coordonnées
+      // Ajouter des marqueurs pour TOUTES les activités
       sortedActivities.forEach((activity, index) => {
         if (activity.latitude && activity.longitude) {
           const coords: [number, number] = [activity.latitude, activity.longitude]
           points.push(coords)
 
-          // Ajouter des marqueurs pour toutes les activités non-DRIVING ou les points de début/fin
-          if (
-            activity.duty_status !== "DRIVING" ||
-            activity === sortedActivities[0] ||
-            activity === sortedActivities[sortedActivities.length - 1]
-          ) {
-            const marker = L.marker(coords, { icon: getStatusIcon(activity.duty_status) }).bindPopup(`
-              <div style="min-width: 200px;">
-                <strong>${activity.duty_status.replace(/_/g, " ")}</strong><br>
-                <strong>Date:</strong> ${formatDate(activity.date)}<br>
-                <strong>Time:</strong> ${formatTime(activity.start_time)} - ${formatTime(activity.end_time)}<br>
-                <strong>Location:</strong> ${activity.location}
-              </div>
-            `)
-            markers.push(marker)
-            marker.addTo(map)
-            console.log(`Marker added at [${coords[0]}, ${coords[1]}] for activity ${index}`)
-          }
+          // Déterminer si c'est le départ, le ramassage ou la livraison
+          const isStart = index === 0
+          const isDropoff = index === sortedActivities.length - 1
+          const isPickup = activity.location.includes("Ramassage") || activity.location.includes("Pickup")
+
+          // Ajouter un marqueur pour chaque activité
+          const marker = L.marker(coords, {
+            icon: getStatusIcon(activity.duty_status, isStart, isPickup, isDropoff),
+          }).bindPopup(`
+            <div style="min-width: 200px;">
+              <strong>${activity.duty_status.replace(/_/g, " ")}</strong><br>
+              <strong>Date:</strong> ${formatDate(activity.date)}<br>
+              <strong>Time:</strong> ${formatTime(activity.start_time)} - ${formatTime(activity.end_time)}<br>
+              <strong>Location:</strong> ${activity.location}
+            </div>
+          `)
+          markers.push(marker)
+          marker.addTo(map)
+          console.log(`Marker added at [${coords[0]}, ${coords[1]}] for activity ${index}: ${activity.duty_status} (${activity.location})`)
         } else {
           console.warn(`Activity ${index} has no valid coordinates:`, activity)
         }
@@ -233,12 +242,12 @@ export default function ActivityMap({ activities, tripData }: ActivityMapProps) 
         try {
           const bounds = L.latLngBounds([])
           if (tripData?.route_geometry_to_pickup) {
-            polyline.decode(tripData.route_geometry_to_pickup).forEach((coord : any) => {
+            polyline.decode(tripData.route_geometry_to_pickup).forEach((coord) => {
               bounds.extend(coord)
             })
           }
           if (tripData?.route_geometry_to_dropoff) {
-            polyline.decode(tripData.route_geometry_to_dropoff).forEach((coord : any) => {
+            polyline.decode(tripData.route_geometry_to_dropoff).forEach((coord) => {
               bounds.extend(coord)
             })
           }
@@ -277,6 +286,18 @@ export default function ActivityMap({ activities, tripData }: ActivityMapProps) 
         div.innerHTML = `
           <div style="margin-bottom: 5px;"><strong>Activity Types</strong></div>
           <div style="display: flex; align-items: center; margin-bottom: 5px;">
+            <img src="https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png" width="15" height="24" style="margin-right: 5px;">
+            <span>Start</span>
+          </div>
+          <div style="display: flex; align-items: center; margin-bottom: 5px;">
+            <img src="https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png" width="15" height="24" style="margin-right: 5px;">
+            <span>Pickup</span>
+          </div>
+          <div style="display: flex; align-items: center; margin-bottom: 5px;">
+            <img src="https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-black.png" width="15" height="24" style="margin-right: 5px;">
+            <span>Dropoff</span>
+          </div>
+          <div style="display: flex; align-items: center; margin-bottom: 5px;">
             <img src="https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png" width="15" height="24" style="margin-right: 5px;">
             <span>Driving</span>
           </div>
@@ -310,7 +331,7 @@ export default function ActivityMap({ activities, tripData }: ActivityMapProps) 
       console.error("Error initializing map:", error)
       setLoading(false)
       toast.error("Failed to initialize map", {
-        description: (error as Error).message || "An unknown error occurred",
+        description: error.message || "An unknown error occurred",
       })
     }
   }
