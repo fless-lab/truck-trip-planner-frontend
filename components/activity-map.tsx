@@ -244,6 +244,9 @@ export default function ActivityMap({ activities, tripData }: ActivityMapProps) 
 
       console.log("Activities count:", sortedActivities.length)
 
+      // Variable pour suivre si le premier marqueur DRIVING a été affiché
+      let firstDrivingMarkerDisplayed = false;
+      
       groupedActivities.forEach((group, index) => {
         const coords = [group.latitude, group.longitude];
         points.push(coords);
@@ -252,6 +255,23 @@ export default function ActivityMap({ activities, tripData }: ActivityMapProps) 
         const isStart = index === 0;
         const isDropoff = index === groupedActivities.length - 1;
         const isPickup = group.location.includes("Ramassage") || group.location.includes("Pickup");
+      
+        // Pour les activités de type DRIVING, n'afficher que le premier marqueur
+        if (group.duty_status === "DRIVING") {
+          if (!firstDrivingMarkerDisplayed) {
+            // C'est le premier marqueur DRIVING, on l'affiche
+            firstDrivingMarkerDisplayed = true;
+            console.log(
+              `Displaying first DRIVING marker at [${coords[0]}, ${coords[1]}] for activity ${index}: ${group.duty_status} (${group.location})`
+            );
+          } else {
+            // Ce n'est pas le premier marqueur DRIVING, on le saute
+            console.log(
+              `Skipping marker at [${coords[0]}, ${coords[1]}] for DRIVING activity ${index}: ${group.duty_status} (${group.location})`
+            );
+            return;
+          }
+        }
       
         // Formater les dates et heures pour la popup
         const startDateFormatted = formatDate(group.start_date);
@@ -370,10 +390,6 @@ export default function ActivityMap({ activities, tripData }: ActivityMapProps) 
           <div style="display: flex; align-items: center; margin-bottom: 5px;">
             <img src="https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-black.png" width="15" height="24" style="margin-right: 5px;">
             <span>Dropoff</span>
-          </div>
-          <div style="display: flex; align-items: center; margin-bottom: 5px;">
-            <img src="https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png" width="15" height="24" style="margin-right: 5px;">
-            <span>Driving</span>
           </div>
           <div style="display: flex; align-items: center; margin-bottom: 5px;">
             <img src="https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-orange.png" width="15" height="24" style="margin-right: 5px;">
