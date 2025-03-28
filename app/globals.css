@@ -1,0 +1,124 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+    --card: 222.2 84% 4.9%;
+    --card-foreground: 210 40% 98%;
+    --popover: 222.2 84% 4.9%;
+    --popover-foreground: 210 40% 98%;
+    --primary: 217.2 91.2% 59.8%;
+    --primary-foreground: 222.2 47.4% 11.2%;
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+    --accent: 217.2 32.6% 17.5%;
+    --accent-foreground: 210 40% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 224.3 76.3% 48%;
+    --radius: 0.5rem;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+/* Fix for Leaflet map container */
+.leaflet-container {
+  height: 100%;
+  width: 100%;
+  z-index: 1;
+}
+
+/* Fix for Leaflet popup content */
+.leaflet-popup-content {
+  margin: 13px 19px;
+  line-height: 1.4;
+}
+
+/* Fix for Leaflet controls */
+.leaflet-control-container .leaflet-top,
+.leaflet-control-container .leaflet-bottom {
+  z-index: 900;
+}
+
+/* Sonner toast styles */
+.sonner-toast {
+  --border-radius: 0.5rem !important;
+  --font-family: inherit !important;
+}
+
+.sonner-toast[data-type="success"] {
+  --normal-bg: hsl(143, 85%, 15%) !important;
+  --normal-border: hsl(143, 85%, 25%) !important;
+  --normal-text: hsl(143, 85%, 95%) !important;
+}
+
+.sonner-toast[data-type="error"] {
+  --normal-bg: hsl(0, 85%, 15%) !important;
+  --normal-border: hsl(0, 85%, 25%) !important;
+  --normal-text: hsl(0, 85%, 95%) !important;
+}
+
+.sonner-toast[data-type="loading"] {
+  --normal-bg: hsl(217, 20%, 15%) !important;
+  --normal-border: hsl(217, 20%, 25%) !important;
+  --normal-text: hsl(217, 20%, 95%) !important;
+}
+
+/* Container utility class */
+.container {
+  width: 100%;
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: 1rem;
+  padding-right: 1rem;
+}
+
+@media (min-width: 640px) {
+  .container {
+    max-width: 640px;
+    padding-left: 1.5rem;
+    padding-right: 1.5rem;
+  }
+}
+
+@media (min-width: 768px) {
+  .container {
+    max-width: 768px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .container {
+    max-width: 1024px;
+    padding-left: 2rem;
+    padding-right: 2rem;
+  }
+}
+
+@media (min-width: 1280px) {
+  .container {
+    max-width: 1280px;
+  }
+}
+
+@media (min-width: 1536px) {
+  .container {
+    max-width: 1536px;
+  }
+}
+
