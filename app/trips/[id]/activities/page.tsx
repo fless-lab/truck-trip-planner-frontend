@@ -75,7 +75,7 @@ export default function TripActivitiesPage() {
         setLoading(true)
         toast.loading("Loading trip activities...", { id: "fetch-trip" })
 
-        const response = await fetch(`https://truck-trip-planner-backend.onrender.com/api/trips/${tripId}/`)
+        const response = await fetch(`http://localhost:8000/api/trips/${tripId}/`)
 
         if (!response.ok) {
           throw new Error("Error retrieving trip")

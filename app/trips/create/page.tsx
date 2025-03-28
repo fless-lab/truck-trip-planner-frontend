@@ -52,7 +52,7 @@ export default function CreateTripPage() {
         id: "create-trip",
       })
 
-      const response = await fetch("https://truck-trip-planner-backend.onrender.com/api/trips/create/", {
+      const response = await fetch("http://localhost:8000/api/trips/create/", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
