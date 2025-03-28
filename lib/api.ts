@@ -33,9 +33,7 @@ export async function postApi(endpoint: string, data: any) {
     body: JSON.stringify(data),
   });
   
-  if (!response.ok) {
-    throw new Error(`Erreur API: ${response.status}`);
-  }
-  
-  return await response.json();
+  // Retourne l'objet response au lieu de son contenu JSON
+  // pour permettre au code appelant de vérifier response.ok et d'appeler response.json()
+  return response;
 }
