@@ -75,6 +75,7 @@ export default function ActivityMap({ activities, tripData }: ActivityMapProps) 
     })
   }
 
+
   // Fonction pour initialiser ou mettre à jour la carte
   const initOrUpdateMap = () => {
     if (!mapRef.current) {
@@ -117,6 +118,7 @@ export default function ActivityMap({ activities, tripData }: ActivityMapProps) 
         attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
         maxZoom: 19,
       }).addTo(map)
+      
 
       // Trier les activités par date et heure
       const sortedActivities = [...activities].sort((a, b) => {
@@ -124,6 +126,73 @@ export default function ActivityMap({ activities, tripData }: ActivityMapProps) 
         const dateB = new Date(`${b.date}T${b.start_time}`)
         return dateA.getTime() - dateB.getTime()
       })
+
+      // Overlapping fix
+      const areConsecutive = (activity1: any, activity2: any) => {
+        const endTime1 = new Date(`${activity1.date}T${activity1.end_time}`);
+        const startTime2 = new Date(`${activity2.date}T${activity2.start_time}`);
+        const timeDiffMinutes = ((startTime2 as any) - (endTime1 as any)) / (1000 * 60);
+        const sameStatus = activity1.duty_status === activity2.duty_status;
+        const latDiff = Math.abs(activity1.latitude - activity2.latitude);
+        const lonDiff = Math.abs(activity1.longitude - activity2.longitude);
+        const sameCoords = latDiff < 0.001 && lonDiff < 0.001; // Tolérance de 0.001 degrés
+        return sameStatus && sameCoords && timeDiffMinutes <= 1;
+      };
+  
+      // Regrouper les activités consécutives
+      const groupedActivities = [];
+      let currentGroup = null as unknown as any;
+
+
+      sortedActivities.forEach((activity, index) => {
+        if (!activity.latitude || !activity.longitude) {
+          console.warn(`Activity ${index} has no valid coordinates:`, activity);
+          return;
+        }
+      
+        if (!currentGroup) {
+          // Démarrer un nouveau groupe
+          currentGroup = {
+            duty_status: activity.duty_status,
+            start_date: activity.date,
+            start_time: activity.start_time,
+            end_date: activity.date,
+            end_time: activity.end_time,
+            location: activity.location,
+            latitude: activity.latitude,
+            longitude: activity.longitude,
+            activities: [activity],
+          };
+        } else {
+          // Vérifier si l'activité peut être ajoutée au groupe actuel
+          if (areConsecutive(currentGroup.activities[currentGroup.activities.length - 1], activity)) {
+            currentGroup.end_date = activity.date;
+            currentGroup.end_time = activity.end_time;
+            currentGroup.activities.push(activity);
+          } else {
+            // Terminer le groupe actuel et en démarrer un nouveau
+            groupedActivities.push(currentGroup);
+            currentGroup = {
+              duty_status: activity.duty_status,
+              start_date: activity.date,
+              start_time: activity.start_time,
+              end_date: activity.date,
+              end_time: activity.end_time,
+              location: activity.location,
+              latitude: activity.latitude,
+              longitude: activity.longitude,
+              activities: [activity],
+            };
+          }
+        }
+      });
+      
+      // Ajouter le dernier groupe
+      if (currentGroup) {
+        groupedActivities.push(currentGroup);
+      }
+      
+      console.log("Grouped activities count:", groupedActivities.length);
 
       // Extraire les coordonnées pour chaque activité
       const points: Array<[number, number]> = []
@@ -175,35 +244,40 @@ export default function ActivityMap({ activities, tripData }: ActivityMapProps) 
 
       console.log("Activities count:", sortedActivities.length)
 
-      // Ajouter des marqueurs pour TOUTES les activités
-      sortedActivities.forEach((activity, index) => {
-        if (activity.latitude && activity.longitude) {
-          const coords: [number, number] = [activity.latitude, activity.longitude]
-          points.push(coords)
-
-          // Déterminer si c'est le départ, le ramassage ou la livraison
-          const isStart = index === 0
-          const isDropoff = index === sortedActivities.length - 1
-          const isPickup = activity.location.includes("Ramassage") || activity.location.includes("Pickup")
-
-          // Ajouter un marqueur pour chaque activité
-          const marker = L.marker(coords, {
-            icon: getStatusIcon(activity.duty_status, isStart, isPickup, isDropoff),
-          }).bindPopup(`
-            <div style="min-width: 200px;">
-              <strong>${activity.duty_status.replace(/_/g, " ")}</strong><br>
-              <strong>Date:</strong> ${formatDate(activity.date)}<br>
-              <strong>Time:</strong> ${formatTime(activity.start_time)} - ${formatTime(activity.end_time)}<br>
-              <strong>Location:</strong> ${activity.location}
-            </div>
-          `)
-          markers.push(marker)
-          marker.addTo(map)
-          console.log(`Marker added at [${coords[0]}, ${coords[1]}] for activity ${index}: ${activity.duty_status} (${activity.location})`)
-        } else {
-          console.warn(`Activity ${index} has no valid coordinates:`, activity)
-        }
-      })
+      groupedActivities.forEach((group, index) => {
+        const coords = [group.latitude, group.longitude];
+        points.push(coords);
+      
+        // Déterminer si c'est le départ, le ramassage ou la livraison
+        const isStart = index === 0;
+        const isDropoff = index === groupedActivities.length - 1;
+        const isPickup = group.location.includes("Ramassage") || group.location.includes("Pickup");
+      
+        // Formater les dates et heures pour la popup
+        const startDateFormatted = formatDate(group.start_date);
+        const endDateFormatted = formatDate(group.end_date);
+        const dateDisplay =
+          startDateFormatted === endDateFormatted
+            ? startDateFormatted
+            : `${startDateFormatted} - ${endDateFormatted}`;
+      
+        // Ajouter un marqueur pour le groupe
+        const marker = L.marker(coords, {
+          icon: getStatusIcon(group.duty_status, isStart, isPickup, isDropoff),
+        }).bindPopup(`
+          <div style="min-width: 200px;">
+            <strong>${group.duty_status.replace(/_/g, " ")}</strong><br>
+            <strong>Date:</strong> ${dateDisplay}<br>
+            <strong>Time:</strong> ${formatTime(group.start_time)} - ${formatTime(group.end_time)}<br>
+            <strong>Location:</strong> ${group.location}
+          </div>
+        `);
+        markers.push(marker);
+        marker.addTo(map);
+        console.log(
+          `Marker added at [${coords[0]}, ${coords[1]}] for grouped activity ${index}: ${group.duty_status} (${group.location})`
+        );
+      });
 
       console.log("Points count:", points.length)
       console.log("Route geometry available:", !!tripData?.route_geometry_to_pickup)
